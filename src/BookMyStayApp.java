@@ -1,63 +1,99 @@
+import java.util.*;
+// Domain Model: Room
+        class Room {
+            private String roomType;
+            private double price;
+            private String amenities;
 
-import java.util.HashMap;
-import java.util.Map;
-public class BookMyStayApp {
-    public static void main(String[] args) {
+            public Room(String roomType, double price, String amenities) {
+                this.roomType = roomType;
+                this.price = price;
+                this.amenities = amenities;
+            }
 
-            System.out.println("=====================================");
-            System.out.println("        BOOK MY STAY APP");
-            System.out.println("            Version 3.0");
-            System.out.println("=====================================");
+            public String getRoomType() {
+                return roomType;
+            }
 
-            // Initialize Inventory
-            RoomInventory inventory = new RoomInventory();
+            public double getPrice() {
+                return price;
+            }
 
-            // Display current inventory
-            System.out.println("\nCurrent Room Inventory:");
-            inventory.displayInventory();
-
-            // Example update
-            System.out.println("\nUpdating inventory...");
-            inventory.updateAvailability("Single Room", 4);
-
-            // Display updated inventory
-            System.out.println("\nUpdated Room Inventory:");
-            inventory.displayInventory();
-        }
-    }
-
-
-    // Room Inventory Class
-    class RoomInventory {
-
-        private HashMap<String, Integer> availability;
-
-        // Constructor initializes inventory
-        public RoomInventory() {
-            availability = new HashMap<>();
-
-            availability.put("Single Room", 5);
-            availability.put("Double Room", 3);
-            availability.put("Suite Room", 2);
-        }
-
-        // Get availability of a room type
-        public int getAvailability(String roomType) {
-            return availability.getOrDefault(roomType, 0);
-        }
-
-        // Update availability
-        public void updateAvailability(String roomType, int count) {
-            availability.put(roomType, count);
-        }
-
-        // Display entire inventory
-        public void displayInventory() {
-            for (Map.Entry<String, Integer> entry : availability.entrySet()) {
-                System.out.println(entry.getKey() + " : " + entry.getValue() + " rooms available");
+            public String getAmenities() {
+                return amenities;
             }
         }
-    }
+
+// Inventory (State Holder)
+        class Inventory {
+            private Map<String, Integer> roomAvailability = new HashMap<>();
+
+            public void addRoom(String roomType, int count) {
+                roomAvailability.put(roomType, count);
+            }
+
+            public int getAvailability(String roomType) {
+                return roomAvailability.getOrDefault(roomType, 0);
+            }
+
+            public Set<String> getRoomTypes() {
+                return roomAvailability.keySet();
+            }
+        }
+
+// Search Service (Read-only operations)
+        class SearchService {
+
+            public void searchAvailableRooms(Inventory inventory, Map<String, Room> rooms) {
+
+                System.out.println("\nAvailable Rooms:\n");
+
+                for (String type : inventory.getRoomTypes()) {
+
+                    int available = inventory.getAvailability(type);
+
+                    // Validation logic
+                    if (available > 0) {
+                        Room room = rooms.get(type);
+
+                        System.out.println("Room Type : " + room.getRoomType());
+                        System.out.println("Price     : $" + room.getPrice());
+                        System.out.println("Amenities : " + room.getAmenities());
+                        System.out.println("Available : " + available);
+                        System.out.println("---------------------------");
+                    }
+                }
+            }
+        }
+
+// Main Class
+
+public class BookMyStayApp {
+
+            public static void main(String[] args) {
+
+                // Create room objects (Domain Model)
+                Room standard = new Room("Standard", 100, "WiFi, TV");
+                Room deluxe = new Room("Deluxe", 180, "WiFi, TV, Mini Bar");
+                Room suite = new Room("Suite", 250, "WiFi, TV, Mini Bar, Jacuzzi");
+
+                // Store rooms in a map
+                Map<String, Room> rooms = new HashMap<>();
+                rooms.put("Standard", standard);
+                rooms.put("Deluxe", deluxe);
+                rooms.put("Suite", suite);
+
+                // Inventory setup
+                Inventory inventory = new Inventory();
+                inventory.addRoom("Standard", 5);
+                inventory.addRoom("Deluxe", 2);
+                inventory.addRoom("Suite", 0); // Suite not available
+
+                // Guest searches for rooms
+                SearchService searchService = new SearchService();
+                searchService.searchAvailableRooms(inventory, rooms);
+            }
+        }
 
 
 

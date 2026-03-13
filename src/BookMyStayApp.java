@@ -1,87 +1,64 @@
-public class BookMyStayApp {
 
+import java.util.HashMap;
+import java.util.Map;
+public class BookMyStayApp {
     public static void main(String[] args) {
 
-        System.out.println("=====================================");
-        System.out.println("        BOOK MY STAY APP");
-        System.out.println("            Version 2.0");
-        System.out.println("=====================================");
+            System.out.println("=====================================");
+            System.out.println("        BOOK MY STAY APP");
+            System.out.println("            Version 3.0");
+            System.out.println("=====================================");
 
-        // Polymorphism
-        Room single = new SingleRoom();
-        Room doubleRoom = new DoubleRoom();
-        Room suite = new SuiteRoom();
+            // Initialize Inventory
+            RoomInventory inventory = new RoomInventory();
 
-        // Static availability variables
-        int singleAvailable = 5;
-        int doubleAvailable = 3;
-        int suiteAvailable = 2;
+            // Display current inventory
+            System.out.println("\nCurrent Room Inventory:");
+            inventory.displayInventory();
 
-        System.out.println("\n--- Single Room Details ---");
-        single.displayRoomDetails();
-        System.out.println("Available Rooms: " + singleAvailable);
+            // Example update
+            System.out.println("\nUpdating inventory...");
+            inventory.updateAvailability("Single Room", 4);
 
-        System.out.println("\n--- Double Room Details ---");
-        doubleRoom.displayRoomDetails();
-        System.out.println("Available Rooms: " + doubleAvailable);
-
-        System.out.println("\n--- Suite Room Details ---");
-        suite.displayRoomDetails();
-        System.out.println("Available Rooms: " + suiteAvailable);
-
-        System.out.println("\nApplication Terminated.");
-    }
-}
-
-
-// Abstract Class
-abstract class Room {
-
-    protected String roomType;
-    protected int numberOfBeds;
-    protected int roomSize;
-    protected double price;
-
-    public Room(String roomType, int numberOfBeds, int roomSize, double price) {
-        this.roomType = roomType;
-        this.numberOfBeds = numberOfBeds;
-        this.roomSize = roomSize;
-        this.price = price;
+            // Display updated inventory
+            System.out.println("\nUpdated Room Inventory:");
+            inventory.displayInventory();
+        }
     }
 
-    public void displayRoomDetails() {
-        System.out.println("Room Type: " + roomType);
-        System.out.println("Beds: " + numberOfBeds);
-        System.out.println("Room Size: " + roomSize + " sq.ft");
-        System.out.println("Price per night: ₹" + price);
+
+    // Room Inventory Class
+    class RoomInventory {
+
+        private HashMap<String, Integer> availability;
+
+        // Constructor initializes inventory
+        public RoomInventory() {
+            availability = new HashMap<>();
+
+            availability.put("Single Room", 5);
+            availability.put("Double Room", 3);
+            availability.put("Suite Room", 2);
+        }
+
+        // Get availability of a room type
+        public int getAvailability(String roomType) {
+            return availability.getOrDefault(roomType, 0);
+        }
+
+        // Update availability
+        public void updateAvailability(String roomType, int count) {
+            availability.put(roomType, count);
+        }
+
+        // Display entire inventory
+        public void displayInventory() {
+            for (Map.Entry<String, Integer> entry : availability.entrySet()) {
+                System.out.println(entry.getKey() + " : " + entry.getValue() + " rooms available");
+            }
+        }
     }
-}
 
 
-// Single Room Class
-class SingleRoom extends Room {
-
-    public SingleRoom() {
-        super("Single Room", 1, 200, 2500);
-    }
-}
-
-
-// Double Room Class
-class DoubleRoom extends Room {
-
-    public DoubleRoom() {
-        super("Double Room", 2, 350, 4000);
-    }
-}
-
-
-// Suite Room Class
-class SuiteRoom extends Room {
-
-    public SuiteRoom() {
-        super("Suite Room", 3, 500, 7000);
-    }
-}
 
 

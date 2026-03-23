@@ -1,28 +1,39 @@
 import java.util.*;
 
 // Main Class
-public class  BookMyStayApp{
+public class BookMyStayApp {
 
     public static void main(String[] args) {
 
-        BookingHistory history = new BookingHistory();
+        RoomInventory inventory = new RoomInventory();
 
         Reservation r1 = new Reservation("Alice", "Single Room");
-        Reservation r2 = new Reservation("Bob", "Double Room");
-        Reservation r3 = new Reservation("Charlie", "Suite Room");
-        Reservation r4 = new Reservation("David", "Single Room");
+        Reservation r2 = new Reservation("Bob", "Luxury Room"); // Invalid type
 
-        history.addReservation(r1);
-        history.addReservation(r2);
-        history.addReservation(r3);
-        history.addReservation(r4);
+        processBooking(r1, inventory);
+        processBooking(r2, inventory);
+    }
 
-        System.out.println("===== Booking History =====");
-        history.displayHistory();
+    public static void processBooking(Reservation reservation, RoomInventory inventory) {
 
-        BookingReportService reportService = new BookingReportService(history);
+        try {
+            String roomType = reservation.getRoomType();
 
-        reportService.generateReport();
+            // Validation checks
+            InvalidBookingValidator.validateRoomType(roomType, inventory);
+            InvalidBookingValidator.validateAvailability(roomType, inventory);
+
+            int available = inventory.getAvailability(roomType);
+
+            inventory.updateAvailability(roomType, available - 1);
+
+            System.out.println("Booking successful for "
+                    + reservation.getGuestName() + " - " + roomType);
+
+        } catch (InvalidBookingException e) {
+            System.out.println("Booking failed for "
+                    + reservation.getGuestName() + ": " + e.getMessage());
+        }
     }
 }
 
@@ -36,70 +47,61 @@ class Reservation {
         this.roomType = roomType;
     }
 
+    public String getGuestName() {
+        return guestName;
+    }
+
     public String getRoomType() {
         return roomType;
     }
+}
 
-    @Override
-    public String toString() {
-        return guestName + " - " + roomType;
+// Room Inventory Class
+class RoomInventory {
+    private Map<String, Integer> rooms = new HashMap<>();
+
+    public RoomInventory() {
+        rooms.put("Single Room", 1);
+        rooms.put("Double Room", 1);
+        rooms.put("Suite Room", 0); // No availability
+    }
+
+    public boolean containsRoomType(String roomType) {
+        return rooms.containsKey(roomType);
+    }
+
+    public int getAvailability(String roomType) {
+        return rooms.getOrDefault(roomType, 0);
+    }
+
+    public void updateAvailability(String roomType, int count) {
+        rooms.put(roomType, count);
     }
 }
 
-// Booking History Class
-class BookingHistory {
-    private List<Reservation> reservations = new ArrayList<>();
-
-    public void addReservation(Reservation r) {
-        reservations.add(r);
-    }
-
-    public List<Reservation> getReservations() {
-        return reservations;
-    }
-
-    public void displayHistory() {
-        for (Reservation r : reservations) {
-            System.out.println(r);
-        }
+// Custom Exception Class
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
     }
 }
 
-// Report Service Class
-class BookingReportService {
-    private BookingHistory history;
+// Validator Class
+class InvalidBookingValidator {
 
-    public BookingReportService(BookingHistory history) {
-        this.history = history;
+    public static void validateRoomType(String roomType, RoomInventory inventory)
+            throws InvalidBookingException {
+
+        if (!inventory.containsRoomType(roomType)) {
+            throw new InvalidBookingException("Invalid room type selected.");
+        }
     }
 
-    public void generateReport() {
-        System.out.println("\n===== Booking Report =====");
+    public static void validateAvailability(String roomType, RoomInventory inventory)
+            throws InvalidBookingException {
 
-        Map<String, Integer> roomCount = new HashMap<>();
-
-        // Count room types
-        for (Reservation r : history.getReservations()) {
-            String type = r.getRoomType();
-            roomCount.put(type, roomCount.getOrDefault(type, 0) + 1);
+        if (inventory.getAvailability(roomType) <= 0) {
+            throw new InvalidBookingException("Room not available.");
         }
-
-        // Display report
-        for (String type : roomCount.keySet()) {
-            System.out.println(type + ": " + roomCount.get(type) + " bookings");
-        }
-
-        // Find most popular room type
-        String popularRoom = null;
-        int max = 0;
-
-        for (Map.Entry<String, Integer> entry : roomCount.entrySet()) {
-            if (entry.getValue() > max) {
-                max = entry.getValue();
-                popularRoom = entry.getKey();
-            }
-        }
-
-        System.out.println("\nMost Popular Room Type: " + popularRoom);
     }
 }

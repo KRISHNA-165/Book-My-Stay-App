@@ -1,7 +1,10 @@
+import java.io.*;
 import java.util.*;
 
-// Booking class
-class Booking {
+// Booking class (Serializable)
+class Booking implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     int bookingId;
     String guestName;
     int roomNumber;
@@ -27,12 +30,31 @@ class Booking {
     }
 }
 
+// Wrapper class for persistence
+class HotelData implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    Map<Integer, Booking> bookings;
+    Set<Integer> availableRooms;
+    int bookingCounter;
+
+    public HotelData(Map<Integer, Booking> bookings,
+                     Set<Integer> availableRooms,
+                     int bookingCounter) {
+        this.bookings = bookings;
+        this.availableRooms = availableRooms;
+        this.bookingCounter = bookingCounter;
+    }
+}
+
 // Hotel System
 class HotelSystem {
 
     private Map<Integer, Booking> bookings = new HashMap<>();
     private Set<Integer> availableRooms = new HashSet<>();
     private int bookingCounter = 1;
+
+    private final String FILE_NAME = "hotel_data.ser";
 
     // Initialize rooms
     public HotelSystem(int totalRooms) {
@@ -57,35 +79,53 @@ class HotelSystem {
         System.out.println("Booking Successful: " + booking);
     }
 
-    // ✅ UC10: Cancel Booking + Inventory Rollback
-    public void cancelBooking(int bookingId) {
-
-        // Step 1: Check if booking exists
-        if (!bookings.containsKey(bookingId)) {
-            System.out.println("Invalid Booking ID!");
-            return;
-        }
-
-        // Step 2: Remove booking
-        Booking booking = bookings.remove(bookingId);
-
-        // Step 3: Rollback inventory (make room available again)
-        availableRooms.add(booking.getRoomNumber());
-
-        System.out.println("Booking Cancelled Successfully!");
-        System.out.println("Room " + booking.getRoomNumber() + " is now available.");
-    }
-
-    // Display Available Rooms
-    public void showAvailableRooms() {
-        System.out.println("Available Rooms: " + availableRooms);
-    }
-
-    // Display Bookings
+    // Show bookings
     public void showBookings() {
         System.out.println("Current Bookings:");
         for (Booking b : bookings.values()) {
             System.out.println(b);
+        }
+    }
+
+    // Show available rooms
+    public void showAvailableRooms() {
+        System.out.println("Available Rooms: " + availableRooms);
+    }
+
+    // ✅ UC12: SAVE DATA (Persistence)
+    public void saveData() {
+        try (ObjectOutputStream oos =
+                     new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+
+            HotelData data = new HotelData(bookings, availableRooms, bookingCounter);
+            oos.writeObject(data);
+
+            System.out.println("Data saved successfully!");
+
+        } catch (IOException e) {
+            System.out.println("Error saving data!");
+            e.printStackTrace();
+        }
+    }
+
+    // ✅ UC12: LOAD DATA (Recovery)
+    public void loadData() {
+        try (ObjectInputStream ois =
+                     new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+
+            HotelData data = (HotelData) ois.readObject();
+
+            this.bookings = data.bookings;
+            this.availableRooms = data.availableRooms;
+            this.bookingCounter = data.bookingCounter;
+
+            System.out.println("System recovered successfully!");
+
+        } catch (FileNotFoundException e) {
+            System.out.println("No previous data found. Starting fresh.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error loading data!");
+            e.printStackTrace();
         }
     }
 }
@@ -96,16 +136,16 @@ public class BookMyStayApp {
 
         HotelSystem hotel = new HotelSystem(3);
 
+        // Try recovering previous data
+        hotel.loadData();
+
         hotel.bookRoom("Alice");
         hotel.bookRoom("Bob");
 
         hotel.showBookings();
         hotel.showAvailableRooms();
 
-        // UC10 Execution
-        hotel.cancelBooking(1);
-
-        hotel.showBookings();
-        hotel.showAvailableRooms();
+        // Save before exit
+        hotel.saveData();
     }
 }

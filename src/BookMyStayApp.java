@@ -1,100 +1,84 @@
-import java.util.*;
-// Domain Model: Room
-        class Room {
-            private String roomType;
-            private double price;
-            private String amenities;
-
-            public Room(String roomType, double price, String amenities) {
-                this.roomType = roomType;
-                this.price = price;
-                this.amenities = amenities;
-            }
-
-            public String getRoomType() {
-                return roomType;
-            }
-
-            public double getPrice() {
-                return price;
-            }
-
-            public String getAmenities() {
-                return amenities;
-            }
-        }
-
-// Inventory (State Holder)
-        class Inventory {
-            private Map<String, Integer> roomAvailability = new HashMap<>();
-
-            public void addRoom(String roomType, int count) {
-                roomAvailability.put(roomType, count);
-            }
-
-            public int getAvailability(String roomType) {
-                return roomAvailability.getOrDefault(roomType, 0);
-            }
-
-            public Set<String> getRoomTypes() {
-                return roomAvailability.keySet();
-            }
-        }
-
-// Search Service (Read-only operations)
-        class SearchService {
-
-            public void searchAvailableRooms(Inventory inventory, Map<String, Room> rooms) {
-
-                System.out.println("\nAvailable Rooms:\n");
-
-                for (String type : inventory.getRoomTypes()) {
-
-                    int available = inventory.getAvailability(type);
-
-                    // Validation logic
-                    if (available > 0) {
-                        Room room = rooms.get(type);
-
-                        System.out.println("Room Type : " + room.getRoomType());
-                        System.out.println("Price     : $" + room.getPrice());
-                        System.out.println("Amenities : " + room.getAmenities());
-                        System.out.println("Available : " + available);
-                        System.out.println("---------------------------");
-                    }
-                }
-            }
-        }
-
-// Main Class
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class BookMyStayApp {
 
-            public static void main(String[] args) {
+    public static void main(String[] args) {
 
-                // Create room objects (Domain Model)
-                Room standard = new Room("Standard", 100, "WiFi, TV");
-                Room deluxe = new Room("Deluxe", 180, "WiFi, TV, Mini Bar");
-                Room suite = new Room("Suite", 250, "WiFi, TV, Mini Bar, Jacuzzi");
+        System.out.println("===== Book My Stay App =====");
 
-                // Store rooms in a map
-                Map<String, Room> rooms = new HashMap<>();
-                rooms.put("Standard", standard);
-                rooms.put("Deluxe", deluxe);
-                rooms.put("Suite", suite);
+        // Initialize booking queue
+        BookingRequestQueue bookingQueue = new BookingRequestQueue();
 
-                // Inventory setup
-                Inventory inventory = new Inventory();
-                inventory.addRoom("Standard", 5);
-                inventory.addRoom("Deluxe", 2);
-                inventory.addRoom("Suite", 0); // Suite not available
+        // Guests submit booking requests
+        Reservation r1 = new Reservation("Alice", "Single Room");
+        Reservation r2 = new Reservation("Bob", "Double Room");
+        Reservation r3 = new Reservation("Charlie", "Suite Room");
 
-                // Guest searches for rooms
-                SearchService searchService = new SearchService();
-                searchService.searchAvailableRooms(inventory, rooms);
-            }
+        // Add requests to queue (FIFO order)
+        bookingQueue.addRequest(r1);
+        bookingQueue.addRequest(r2);
+        bookingQueue.addRequest(r3);
+
+        // Display queued booking requests
+        bookingQueue.displayRequests();
+
+        System.out.println("\n===== Processing Requests =====");
+
+        // Process requests one by one
+        while (!bookingQueue.isEmpty()) {
+            Reservation processed = bookingQueue.processRequest();
+            System.out.println("Processed: " + processed);
+        }
+    }
+}
+
+// Reservation class
+class Reservation {
+    private String guestName;
+    private String roomType;
+
+    public Reservation(String guestName, String roomType) {
+        this.guestName = guestName;
+        this.roomType = roomType;
+    }
+
+    @Override
+    public String toString() {
+        return "Guest: " + guestName + ", Room: " + roomType;
+    }
+}
+
+// BookingRequestQueue class
+class BookingRequestQueue {
+    private Queue<Reservation> queue = new LinkedList<>();
+
+    // Add booking request
+    public void addRequest(Reservation reservation) {
+        queue.offer(reservation);
+        System.out.println("Added: " + reservation);
+    }
+
+    // Display all requests
+    public void displayRequests() {
+        System.out.println("\n===== Booking Requests Queue =====");
+        if (queue.isEmpty()) {
+            System.out.println("No booking requests.");
+            return;
         }
 
+        for (Reservation r : queue) {
+            System.out.println(r);
+        }
+    }
 
+    // Process (remove) request
+    public Reservation processRequest() {
+        return queue.poll();
+    }
 
-
+    // Check if queue is empty
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
+}

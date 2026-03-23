@@ -1,7 +1,10 @@
+import java.io.*;
 import java.util.*;
 
-// Booking class
-class Booking {
+// Booking class (Serializable)
+class Booking implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     int bookingId;
     String guestName;
     int roomNumber;
@@ -12,6 +15,14 @@ class Booking {
         this.roomNumber = roomNumber;
     }
 
+    public int getBookingId() {
+        return bookingId;
+    }
+
+    public int getRoomNumber() {
+        return roomNumber;
+    }
+
     public String toString() {
         return "BookingID: " + bookingId +
                 ", Guest: " + guestName +
@@ -19,67 +30,103 @@ class Booking {
     }
 }
 
-// Hotel System (Thread-Safe)
+// Wrapper class for persistence
+class HotelData implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    Map<Integer, Booking> bookings;
+    Set<Integer> availableRooms;
+    int bookingCounter;
+
+    public HotelData(Map<Integer, Booking> bookings,
+                     Set<Integer> availableRooms,
+                     int bookingCounter) {
+        this.bookings = bookings;
+        this.availableRooms = availableRooms;
+        this.bookingCounter = bookingCounter;
+    }
+}
+
+// Hotel System
 class HotelSystem {
 
     private Map<Integer, Booking> bookings = new HashMap<>();
     private Set<Integer> availableRooms = new HashSet<>();
     private int bookingCounter = 1;
 
+    private final String FILE_NAME = "hotel_data.ser";
+
+    // Initialize rooms
     public HotelSystem(int totalRooms) {
         for (int i = 1; i <= totalRooms; i++) {
             availableRooms.add(i);
         }
     }
 
-    // 🔒 Synchronized booking method (CRITICAL SECTION)
-    public synchronized void bookRoom(String guestName) {
-
+    // Book Room
+    public void bookRoom(String guestName) {
         if (availableRooms.isEmpty()) {
-            System.out.println(Thread.currentThread().getName() +
-                    ": No rooms available!");
+            System.out.println("No rooms available!");
             return;
-        }
-
-        // simulate delay (to show concurrency effect)
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
 
         int roomNumber = availableRooms.iterator().next();
         availableRooms.remove(roomNumber);
 
         Booking booking = new Booking(bookingCounter++, guestName, roomNumber);
-        bookings.put(booking.bookingId, booking);
+        bookings.put(booking.getBookingId(), booking);
 
-        System.out.println(Thread.currentThread().getName() +
-                " booked -> " + booking);
+        System.out.println("Booking Successful: " + booking);
     }
 
+    // Show bookings
     public void showBookings() {
-        System.out.println("\nFinal Bookings:");
+        System.out.println("Current Bookings:");
         for (Booking b : bookings.values()) {
             System.out.println(b);
         }
     }
-}
 
-// Thread class (simulates a user)
-class UserThread extends Thread {
-
-    private HotelSystem hotel;
-    private String guestName;
-
-    public UserThread(HotelSystem hotel, String guestName) {
-        this.hotel = hotel;
-        this.guestName = guestName;
+    // Show available rooms
+    public void showAvailableRooms() {
+        System.out.println("Available Rooms: " + availableRooms);
     }
 
-    @Override
-    public void run() {
-        hotel.bookRoom(guestName);
+    // ✅ UC12: SAVE DATA (Persistence)
+    public void saveData() {
+        try (ObjectOutputStream oos =
+                     new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+
+            HotelData data = new HotelData(bookings, availableRooms, bookingCounter);
+            oos.writeObject(data);
+
+            System.out.println("Data saved successfully!");
+
+        } catch (IOException e) {
+            System.out.println("Error saving data!");
+            e.printStackTrace();
+        }
+    }
+
+    // ✅ UC12: LOAD DATA (Recovery)
+    public void loadData() {
+        try (ObjectInputStream ois =
+                     new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+
+            HotelData data = (HotelData) ois.readObject();
+
+            this.bookings = data.bookings;
+            this.availableRooms = data.availableRooms;
+            this.bookingCounter = data.bookingCounter;
+
+            System.out.println("System recovered successfully!");
+
+        } catch (FileNotFoundException e) {
+            System.out.println("No previous data found. Starting fresh.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error loading data!");
+            e.printStackTrace();
+        }
     }
 }
 
@@ -87,32 +134,18 @@ class UserThread extends Thread {
 public class BookMyStayApp {
     public static void main(String[] args) {
 
-        HotelSystem hotel = new HotelSystem(2);
+        HotelSystem hotel = new HotelSystem(3);
 
-        // Simulate concurrent users
-        Thread user1 = new UserThread(hotel, "Alice");
-        Thread user2 = new UserThread(hotel, "Bob");
-        Thread user3 = new UserThread(hotel, "Charlie");
+        // Try recovering previous data
+        hotel.loadData();
 
-        user1.setName("User-1");
-        user2.setName("User-2");
-        user3.setName("User-3");
-
-        // Start threads simultaneously
-        user1.start();
-        user2.start();
-        user3.start();
-
-        // Wait for all threads to finish
-        try {
-            user1.join();
-            user2.join();
-            user3.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        hotel.bookRoom("Alice");
+        hotel.bookRoom("Bob");
 
         hotel.showBookings();
+        hotel.showAvailableRooms();
+
+        // Save before exit
+        hotel.saveData();
     }
 }
-
